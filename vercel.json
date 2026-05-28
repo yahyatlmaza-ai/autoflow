@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/public",
+  "installCommand": "npm install -g pnpm@9 && pnpm install --no-frozen-lockfile",
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ]
+}
