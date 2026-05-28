@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npx esbuild server/index.ts server/middleware.ts server/automation.ts server/email.ts server/db.ts server/carriers.ts --platform=node --packages=external --bundle=false --format=esm --outdir=dist",
+    "build": "vite build && npx esbuild server/index.ts server/middleware.ts server/automation.ts server/email.ts server/db.ts server/carriers.ts server/push.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --external:ws --external:pg --external:bcrypt",
     "preview": "vite preview",
     "start": "node dist/index.js",
     "migrate": "node run-migrations.mjs",
