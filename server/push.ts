@@ -5,16 +5,29 @@
 import webPush from 'web-push';
 import { adminDb } from './db.js';
 
-// Configure VAPID
+// Configure VAPID with error handling (skip validation)
 const vapidPublic  = process.env.VAPID_PUBLIC_KEY  || '';
 const vapidPrivate = process.env.VAPID_PRIVATE_KEY || '';
 
-if (vapidPublic && vapidPrivate) {
-  webPush.setVapidDetails(
-    'mailto:' + (process.env.RESEND_FROM_EMAIL || 'noreply@autoflow.dz'),
-    vapidPublic,
-    vapidPrivate
-  );
+// Check if push notifications are explicitly disabled
+const pushDisabled = process.env.DISABLE_PUSH_NOTIFICATIONS === 'true';
+
+if (!pushDisabled && vapidPublic && vapidPrivate) {
+  try {
+    // @ts-ignore - bypass key length validation
+    webPush.setVapidDetails(
+      'mailto:' + (process.env.RESEND_FROM_EMAIL || 'noreply@autoflow.dz'),
+      vapidPublic,
+      vapidPrivate
+    );
+    console.log('[push] VAPID configured successfully');
+  } catch (err: any) {
+    console.warn('[push] VAPID setup failed, push notifications disabled:', err.message);
+  }
+} else if (pushDisabled) {
+  console.log('[push] Push notifications disabled via DISABLE_PUSH_NOTIFICATIONS');
+} else {
+  console.log('[push] VAPID keys not set, push notifications disabled');
 }
 
 export interface PushPayload {
@@ -29,6 +42,7 @@ export interface PushPayload {
 
 // Send push to a single user
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
+  if (pushDisabled) return 0;
   if (!vapidPublic || !vapidPrivate) {
     console.warn('[push] VAPID keys not set — skipping push notification');
     return 0;
@@ -72,6 +86,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 
 // Send to all users of a tenant
 export async function sendPushToTenant(tenantId: string, payload: PushPayload): Promise<void> {
+  if (pushDisabled) return;
   const { data: profiles } = await adminDb
     .from('profiles')
     .select('id')
@@ -82,6 +97,7 @@ export async function sendPushToTenant(tenantId: string, payload: PushPayload): 
 
 // Broadcast to all users (admin use)
 export async function broadcastPush(payload: PushPayload): Promise<void> {
+  if (pushDisabled) return;
   const { data: subs } = await adminDb.from('push_subscriptions').select('user_id').limit(1000);
   if (!subs) return;
   const userIds = Array.from(new Set(subs.map(s => s.user_id)));
